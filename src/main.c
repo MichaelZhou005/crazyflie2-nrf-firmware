@@ -25,6 +25,7 @@
 
 
 
+
 #include <stdio.h>
 #include <string.h>
 
@@ -81,7 +82,6 @@ static int radioRSSISendTime = SYSLINK_STARTUP_DELAY_TIME_MS;
 static int vbatSendTime = SYSLINK_STARTUP_DELAY_TIME_MS;
 static uint8_t rssi;
 static bool bootedFromBootloader;
-
 static void sendDataToStmOverSyslink();
 static void handleButtonEvents();
 static void handleSyslinkEvents(bool slReceived);
@@ -93,6 +93,11 @@ static void disableBle();
 static bool debugProbeReceivedChan = false;
 static bool debugProbeReceivedAddress = false;
 static bool debugProbeReceivedRate = false;
+
+
+static uint8_t jumpToChannel =-1;
+
+static long initTime = -1;
 
 int main()
 {
@@ -178,6 +183,13 @@ void mainloop()
 
   while(1)
   {
+
+    if(initTime != -1 && systickGetTick() >= initTime + 25000)
+      {
+        esbSetChannel(jumpToChannel);
+        initTime = -1;
+      }
+
 
     if (bleEnabled) {
       if ((esbReceived == false) && bleCrazyfliesIsPacketReceived()) {
@@ -512,6 +524,11 @@ static void handleRadioCmd(struct esbPacket_s *packet)
       break;
     case RADIO_CTRL_SET_POWER:
       esbSetTxPower(packet->data[3]);
+      break;
+    case 5:
+      initTime = systickGetTick();
+      jumpToChannel = packet->data[3];
+
       break;
     default:
       break;
